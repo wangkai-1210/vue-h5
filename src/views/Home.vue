@@ -1,45 +1,254 @@
 <template>
   <div class="home-page">
-    <van-nav-bar title="首页" fixed placeholder />
+    <van-nav-bar title="企业诊断咨询" fixed placeholder />
 
     <div class="content">
-      <van-swipe class="banner" :autoplay="3000" indicator-color="white">
-        <van-swipe-item v-for="(item, index) in banners" :key="index">
-          <div class="banner-item" :style="{ background: item.color }">
-            {{ item.text }}
+      <van-form @submit="onSubmit">
+        <!-- 基本信息 -->
+        <div class="section-title">基本信息</div>
+        <van-cell-group inset>
+          <van-field
+            v-model="form.name"
+            name="name"
+            label="姓名"
+            placeholder="请输入姓名"
+            :rules="[{ required: true, message: '请填写姓名' }]"
+          />
+          <van-field name="gender" label="性别">
+            <template #input>
+              <van-radio-group v-model="form.gender" direction="horizontal">
+                <van-radio name="男">男</van-radio>
+                <van-radio name="女">女</van-radio>
+              </van-radio-group>
+            </template>
+          </van-field>
+          <van-field
+            v-model="form.company"
+            name="company"
+            label="公司名称"
+            placeholder="请输入公司名称"
+            :rules="[{ required: true, message: '请填写公司名称' }]"
+          />
+          <van-field
+            v-model="form.position"
+            name="position"
+            label="职务"
+            placeholder="请输入职务"
+          />
+          <van-field
+            v-model="form.mobile"
+            name="mobile"
+            type="tel"
+            label="手机号码"
+            placeholder="请输入手机号码"
+            :rules="[
+              { required: true, message: '请填写手机号码' },
+              { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' }
+            ]"
+          />
+          <van-field
+            v-model="form.wechat"
+            name="wechat"
+            label="微信号"
+            placeholder="请输入微信号"
+          />
+          <van-field
+            v-model="form.qq"
+            name="qq"
+            type="digit"
+            label="QQ号"
+            placeholder="请输入QQ号"
+          />
+        </van-cell-group>
+
+        <!-- 企业信息 -->
+        <div class="section-title">企业信息</div>
+        <van-cell-group inset>
+          <van-field
+            v-model="form.industry"
+            name="industry"
+            label="所属行业"
+            placeholder="请输入所属行业"
+            readonly
+            clickable
+            @click="showIndustryPicker = true"
+          />
+          <van-popup v-model="showIndustryPicker" round position="bottom">
+            <van-picker
+              show-toolbar
+              :columns="industryOptions"
+              @confirm="onIndustryConfirm"
+              @cancel="showIndustryPicker = false"
+            />
+          </van-popup>
+
+          <van-field
+            v-model="form.city"
+            name="city"
+            label="所属城市"
+            placeholder="请输入所属城市"
+            readonly
+            clickable
+            @click="showCityPicker = true"
+          />
+          <van-popup v-model="showCityPicker" round position="bottom">
+            <van-cascader
+              v-model="form.cityCode"
+              title="选择城市"
+              :options="cityOptions"
+              @close="showCityPicker = false"
+              @finish="onCityFinish"
+            />
+          </van-popup>
+
+          <van-field
+            v-model="form.revenue"
+            name="revenue"
+            type="digit"
+            label="营业额"
+            placeholder="请输入营业额">
+            <template #extra>万元</template>
+          </van-field>
+          <van-field
+            v-model="form.grossMargin"
+            name="grossMargin"
+            type="number"
+            label="毛利率"
+            placeholder="请输入毛利率">
+            <template #extra>%</template>
+          </van-field>
+        </van-cell-group>
+
+        <!-- 产业链（选配） -->
+        <div class="section-title">产业链</div>
+        <van-cell-group inset>
+          <van-field name="chain" label="">
+            <template #input>
+              <van-checkbox-group v-model="form.chain" direction="horizontal">
+                <van-checkbox name="终端商" shape="square">终端商</van-checkbox>
+                <van-checkbox name="品牌商" shape="square">品牌商</van-checkbox>
+                <van-checkbox name="制造商" shape="square">制造商</van-checkbox>
+              </van-checkbox-group>
+            </template>
+          </van-field>
+        </van-cell-group>
+
+        <!-- 组织架构 -->
+        <div class="section-title">组织架构</div>
+        <van-cell-group inset>
+          <van-field
+            v-model="orgInput"
+            label="添加部门"
+            placeholder="输入部门名称，回车添加"
+            @keydown.enter.prevent="addOrg">
+            <template #button>
+              <van-button size="small" type="primary" @click="addOrg">添加</van-button>
+            </template>
+          </van-field>
+          <div class="tag-list">
+            <van-tag
+              v-for="(tag, index) in form.orgList"
+              :key="index"
+              round
+              closable
+              size="medium"
+              type="primary"
+              class="org-tag"
+              @close="removeOrg(index)"
+            >
+              {{ tag }}
+            </van-tag>
           </div>
-        </van-swipe-item>
-      </van-swipe>
+        </van-cell-group>
 
-      <van-grid :column-num="4" class="grid-nav">
-        <van-grid-item
-          v-for="item in gridList"
-          :key="item.text"
-          :icon="item.icon"
-          :text="item.text"
-          @click="onGridClick(item)"
-        />
-      </van-grid>
+        <!-- 年度目标 -->
+        <div class="section-title">年度目标</div>
+        <van-cell-group inset>
+          <van-field
+            v-model="form.targetYear1"
+            name="targetYear1"
+            type="digit"
+            label="一年目标"
+            placeholder="请输入一年目标">
+            <template #extra>双</template>
+          </van-field>
+          <van-field
+            v-model="form.targetYear2"
+            name="targetYear2"
+            type="digit"
+            label="两年目标"
+            placeholder="请输入两年目标">
+            <template #extra>双</template>
+          </van-field>
+          <van-field
+            v-model="form.targetYear3"
+            name="targetYear3"
+            type="digit"
+            label="三年目标"
+            placeholder="请输入三年目标">
+            <template #extra>双</template>
+          </van-field>
+          <van-field
+            v-model="form.targetYear4"
+            name="targetYear4"
+            type="digit"
+            label="四年目标"
+            placeholder="请输入四年目标">
+            <template #extra>双</template>
+          </van-field>
+          <van-field
+            v-model="form.targetYear5"
+            name="targetYear5"
+            label="五年目标"
+            placeholder="请输入五年目标"
+            type="textarea"
+            rows="2"
+          />
+        </van-cell-group>
 
-      <van-cell-group class="list-group" inset>
-        <van-cell
-          v-for="item in newsList"
-          :key="item.id"
-          :title="item.title"
-          :label="item.desc"
-          is-link
-          @click="onCellClick(item)"
-        />
-      </van-cell-group>
+        <!-- 企业难题 -->
+        <div class="section-title">企业难题</div>
+        <van-cell-group inset>
+          <van-field
+            v-model="form.problems"
+            name="problems"
+            label=""
+            placeholder="请描述目前企业遇到的难题"
+            type="textarea"
+            rows="3"
+            maxlength="200"
+            show-word-limit
+          />
+        </van-cell-group>
 
-      <van-button
-        type="primary"
-        block
-        class="btn-about"
-        @click="$router.push('/about')"
-      >
-        跳转关于页
-      </van-button>
+        <!-- AI 模型选择 -->
+        <div class="section-title">AI 模型选择</div>
+        <van-cell-group inset>
+          <van-field
+            v-model="modelName"
+            name="model"
+            label="选择模型"
+            placeholder="请选择 AI 模型"
+            readonly
+            clickable
+            @click="showModelPicker = true"
+          />
+          <van-popup v-model="showModelPicker" round position="bottom">
+            <van-picker
+              show-toolbar
+              :columns="modelColumns"
+              @confirm="onModelConfirm"
+              @cancel="showModelPicker = false"
+            />
+          </van-popup>
+        </van-cell-group>
+
+        <div class="submit-area">
+          <van-button round block type="primary" native-type="submit">
+            使用 {{ modelName }} 生成报告
+          </van-button>
+        </div>
+      </van-form>
     </div>
   </div>
 </template>
@@ -47,58 +256,180 @@
 <script>
 import {
   NavBar,
-  Swipe,
-  SwipeItem,
-  Grid,
-  GridItem,
-  Cell,
+  Form,
+  Field,
   CellGroup,
+  Radio,
+  RadioGroup,
+  Checkbox,
+  CheckboxGroup,
   Button,
-  Toast
+  Tag,
+  Picker,
+  Popup,
+  Cascader,
+  Toast,
+  Dialog,
+  Loading
 } from 'vant'
+import { generateReport, MODEL_CONFIGS } from '@/api/ai'
 
 export default {
   name: 'HomePage',
   components: {
     [NavBar.name]: NavBar,
-    [Swipe.name]: Swipe,
-    [SwipeItem.name]: SwipeItem,
-    [Grid.name]: Grid,
-    [GridItem.name]: GridItem,
-    [Cell.name]: Cell,
+    [Form.name]: Form,
+    [Field.name]: Field,
     [CellGroup.name]: CellGroup,
-    [Button.name]: Button
+    [Radio.name]: Radio,
+    [RadioGroup.name]: RadioGroup,
+    [Checkbox.name]: Checkbox,
+    [CheckboxGroup.name]: CheckboxGroup,
+    [Button.name]: Button,
+    [Tag.name]: Tag,
+    [Picker.name]: Picker,
+    [Popup.name]: Popup,
+    [Cascader.name]: Cascader,
+    [Loading.name]: Loading
   },
   data() {
     return {
-      banners: [
-        { text: 'Banner 1', color: '#39a9ed' },
-        { text: 'Banner 2', color: '#07c160' },
-        { text: 'Banner 3', color: '#ff976a' }
+      form: {
+        name: '',
+        gender: '男',
+        company: '',
+        position: '',
+        mobile: '',
+        wechat: '',
+        qq: '',
+        industry: '',
+        city: '',
+        cityCode: '',
+        revenue: '',
+        grossMargin: '',
+        chain: [],
+        orgList: ['厂长', '设计部', '车间主任', '财务', '包装组'],
+        targetYear1: '',
+        targetYear2: '',
+        targetYear3: '',
+        targetYear4: '',
+        targetYear5: '',
+        problems: ''
+      },
+      orgInput: '',
+      showIndustryPicker: false,
+      showCityPicker: false,
+      showModelPicker: false,
+      selectedModel: 'deepseek',
+      industryOptions: [
+        '制造鞋子',
+        '服装制造',
+        '电子制造',
+        '食品加工',
+        '机械制造',
+        '其他'
       ],
-      gridList: [
-        { icon: 'photo-o', text: '图片', path: '' },
-        { icon: 'chat-o', text: '消息', path: '' },
-        { icon: 'cart-o', text: '购物车', path: '' },
-        { icon: 'user-o', text: '我的', path: '' },
-        { icon: 'star-o', text: '收藏', path: '' },
-        { icon: 'setting-o', text: '设置', path: '' },
-        { icon: 'location-o', text: '定位', path: '' },
-        { icon: 'phone-o', text: '电话', path: '' }
-      ],
-      newsList: [
-        { id: 1, title: 'Vue2 移动端项目搭建完成', desc: '基于 Vue CLI + Vant 的 H5 脚手架' },
-        { id: 2, title: 'REM 适配方案', desc: '使用 amfe-flexible + postcss-pxtorem' },
-        { id: 3, title: '按需加载 Vant', desc: '通过 babel-plugin-import 实现组件按需引入' }
+      cityOptions: [
+        {
+          text: '辽宁省',
+          value: '210000',
+          children: [
+            { text: '沈阳市', value: '210100' },
+            { text: '大连市', value: '210200' },
+            { text: '鞍山市', value: '210300' },
+            { text: '抚顺市', value: '210400' }
+          ]
+        },
+        {
+          text: '广东省',
+          value: '440000',
+          children: [
+            { text: '广州市', value: '440100' },
+            { text: '深圳市', value: '440300' },
+            { text: '东莞市', value: '441900' }
+          ]
+        },
+        {
+          text: '浙江省',
+          value: '330000',
+          children: [
+            { text: '杭州市', value: '330100' },
+            { text: '宁波市', value: '330200' },
+            { text: '温州市', value: '330300' }
+          ]
+        }
       ]
     }
   },
-  methods: {
-    onGridClick(item) {
-      Toast(item.text)
+  computed: {
+    modelName() {
+      const config = MODEL_CONFIGS.find(m => m.key === this.selectedModel)
+      return config ? config.name : 'DeepSeek'
     },
-    onCellClick(item) {
-      Toast(item.title)
+    modelColumns() {
+      return MODEL_CONFIGS.map(m => m.name)
+    }
+  },
+  methods: {
+    onIndustryConfirm(value) {
+      this.form.industry = value
+      this.showIndustryPicker = false
+    },
+    onCityFinish({ selectedOptions }) {
+      this.form.city = selectedOptions.map(option => option.text).join('/')
+      this.showCityPicker = false
+    },
+    onModelConfirm(value) {
+      const config = MODEL_CONFIGS.find(m => m.name === value)
+      if (config) {
+        this.selectedModel = config.key
+      }
+      this.showModelPicker = false
+    },
+    addOrg() {
+      const val = this.orgInput.trim()
+      if (!val) {
+        Toast('请输入部门名称')
+        return
+      }
+      if (this.form.orgList.includes(val)) {
+        Toast('该部门已存在')
+        return
+      }
+      this.form.orgList.push(val)
+      this.orgInput = ''
+    },
+    removeOrg(index) {
+      this.form.orgList.splice(index, 1)
+    },
+    async onSubmit() {
+      console.log('提交数据:', this.form)
+
+      const toast = Toast.loading({
+        message: `${this.modelName} 正在生成分析报告...`,
+        forbidClick: true,
+        duration: 0
+      })
+
+      try {
+        const res = await generateReport(this.form, this.selectedModel)
+        const reportContent = res.choices?.[0]?.message?.content || '生成报告失败，请重试'
+
+        toast.clear()
+
+        Dialog.alert({
+          title: `企业诊断分析报告（${this.modelName}）`,
+          message: reportContent,
+          confirmButtonText: '我知道了',
+          messageAlign: 'left'
+        }).then(() => {
+          // 可在此处调用 API 提交数据到后端保存
+          // this.$store.commit('SET_DIAGNOSIS_INFO', this.form)
+        })
+      } catch (error) {
+        toast.clear()
+        console.error('生成报告失败:', error)
+      }
     }
   }
 }
@@ -108,35 +439,44 @@ export default {
 .home-page {
   .content {
     padding: 12px;
+    padding-bottom: 30px;
   }
 
-  .banner {
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 12px;
+  .section-title {
+    margin: 16px 12px 8px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #323233;
+    position: relative;
+    padding-left: 8px;
 
-    .banner-item {
-      height: 160px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 20px;
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 14px;
+      background: #1989fa;
+      border-radius: 2px;
     }
   }
 
-  .grid-nav {
-    margin-bottom: 12px;
-    border-radius: 8px;
-    overflow: hidden;
+  .tag-list {
+    padding: 12px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .org-tag {
+      margin-right: 0;
+    }
   }
 
-  .list-group {
-    margin-bottom: 12px;
-  }
-
-  .btn-about {
-    margin-top: 12px;
+  .submit-area {
+    margin-top: 24px;
+    padding: 0 12px;
   }
 }
 </style>

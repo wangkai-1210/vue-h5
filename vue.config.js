@@ -19,6 +19,34 @@ module.exports = defineConfig({
         pathRewrite: {
           '^/api': ''
         }
+      },
+      '/deepseek-api': {
+        target: 'https://api.deepseek.com',
+        changeOrigin: true,
+        pathRewrite: {
+          '^/deepseek-api': ''
+        }
+      },
+      '/qwen-api': {
+        target: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        changeOrigin: true,
+        pathRewrite: {
+          '^/qwen-api': ''
+        }
+      },
+      '/kimi-api': {
+        target: 'https://api.moonshot.cn/v1',
+        changeOrigin: true,
+        pathRewrite: {
+          '^/kimi-api': ''
+        }
+      },
+      '/openai-api': {
+        target: 'https://api.openai.com/v1',
+        changeOrigin: true,
+        pathRewrite: {
+          '^/openai-api': ''
+        }
       }
     }
   },
