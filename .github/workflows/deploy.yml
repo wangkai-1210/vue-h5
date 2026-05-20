@@ -8,9 +8,6 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -20,13 +17,20 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '24'
         
     - name: Print version info
       run: |
-        echo "Node version: $(node --version)"
+        echo "Running on Node.js: $(node --version)"
         echo "NPM version: $(npm --version)"
-        echo "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: $FORCE_JAVASCRIPT_ACTIONS_TO_NODE24"
+        
+    - name: Cache npm dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
         
     - name: Install dependencies
       run: |
@@ -39,14 +43,14 @@ jobs:
         CI: false
         NODE_OPTIONS: '--max-old-space-size=4096'
         
-    - name: Verify build output
+    - name: Check build output
       run: |
-        echo "Build verification:"
         if [ -d "dist" ]; then
-          echo "✓ dist directory created successfully"
-          ls -la dist/ | head -15
+          echo "✓ Build successful - dist directory exists"
+          echo "Contents:"
+          ls -la dist/
         else
-          echo "✗ dist directory not found"
+          echo "✗ Build failed - dist directory not found"
           exit 1
         fi
         
