@@ -8,53 +8,46 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        persist-credentials: false
-        
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+    - name: Checkout
+      uses: actions/checkout@v5
+      
+    - name: Setup Node
+      uses: actions/setup-node@v5
       with:
         node-version: '24'
+        cache: 'npm'
         
-    - name: Print version info
+    - name: Version info
       run: |
-        echo "Running on Node.js: $(node --version)"
-        echo "NPM version: $(npm --version)"
+        node -v
+        npm -v
         
-    - name: Cache npm dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.npm
-        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-npm-
-        
-    - name: Install dependencies
+    - name: Install
       run: |
-        npm install --legacy-peer-deps
-        
-    - name: Build project
+        npm ci || npm install --legacy-peer-deps
+      
+    - name: Build
       run: |
         npm run build
       env:
         CI: false
         NODE_OPTIONS: '--max-old-space-size=4096'
-        
-    - name: Check build output
+      
+    - name: Verify
       run: |
         if [ -d "dist" ]; then
-          echo "✓ Build successful - dist directory exists"
-          echo "Contents:"
+          echo "Build successful"
           ls -la dist/
         else
-          echo "✗ Build failed - dist directory not found"
+          echo "Build failed"
           exit 1
         fi
-        
-    - name: Deploy to GitHub Pages
+      
+    - name: Deploy
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
