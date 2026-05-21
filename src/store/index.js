@@ -6,7 +6,8 @@ Vue.use(Vuex)
 export default new Vuex.Store({
   state: {
     userInfo: null,
-    token: localStorage.getItem('token') || ''
+    token: localStorage.getItem('token') || '',
+    reportData: null
   },
   getters: {
     isLogin: state => !!state.token
@@ -23,6 +24,9 @@ export default new Vuex.Store({
       state.token = ''
       state.userInfo = null
       localStorage.removeItem('token')
+    },
+    SET_REPORT_DATA(state, data) {
+      state.reportData = data
     }
   },
   actions: {

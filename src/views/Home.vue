@@ -137,28 +137,13 @@
         <div class="section-title">组织架构</div>
         <van-cell-group inset>
           <van-field
-            v-model="orgInput"
-            label="添加部门"
-            placeholder="输入部门名称，回车添加"
-            @keydown.enter.prevent="addOrg">
-            <template #button>
-              <van-button size="small" type="primary" @click="addOrg">添加</van-button>
-            </template>
-          </van-field>
-          <div class="tag-list">
-            <van-tag
-              v-for="(tag, index) in form.orgList"
-              :key="index"
-              round
-              closable
-              size="medium"
-              type="primary"
-              class="org-tag"
-              @close="removeOrg(index)"
-            >
-              {{ tag }}
-            </van-tag>
-          </div>
+            v-model="form.orgList"
+            name="orgList"
+            label=""
+            placeholder="请描述企业组织架构，如各部门设置及人员配置"
+            type="textarea"
+            rows="4"
+          />
         </van-cell-group>
 
         <!-- 年度目标 -->
@@ -264,12 +249,10 @@ import {
   Checkbox,
   CheckboxGroup,
   Button,
-  Tag,
   Picker,
   Popup,
   Cascader,
   Toast,
-  Dialog,
   Loading
 } from 'vant'
 import { generateReport, MODEL_CONFIGS } from '@/api/ai'
@@ -286,7 +269,6 @@ export default {
     [Checkbox.name]: Checkbox,
     [CheckboxGroup.name]: CheckboxGroup,
     [Button.name]: Button,
-    [Tag.name]: Tag,
     [Picker.name]: Picker,
     [Popup.name]: Popup,
     [Cascader.name]: Cascader,
@@ -308,7 +290,7 @@ export default {
         revenue: '',
         grossMargin: '',
         chain: [],
-        orgList: ['厂长', '设计部', '车间主任', '财务', '包装组'],
+        orgList: '厂长\n设计部\n车间主任\n财务\n包装组',
         targetYear1: '',
         targetYear2: '',
         targetYear3: '',
@@ -316,7 +298,6 @@ export default {
         targetYear5: '',
         problems: ''
       },
-      orgInput: '',
       showIndustryPicker: false,
       showCityPicker: false,
       showModelPicker: false,
@@ -386,22 +367,6 @@ export default {
       }
       this.showModelPicker = false
     },
-    addOrg() {
-      const val = this.orgInput.trim()
-      if (!val) {
-        Toast('请输入部门名称')
-        return
-      }
-      if (this.form.orgList.includes(val)) {
-        Toast('该部门已存在')
-        return
-      }
-      this.form.orgList.push(val)
-      this.orgInput = ''
-    },
-    removeOrg(index) {
-      this.form.orgList.splice(index, 1)
-    },
     async onSubmit() {
       console.log('提交数据:', this.form)
 
@@ -417,15 +382,14 @@ export default {
 
         toast.clear()
 
-        Dialog.alert({
-          title: `企业诊断分析报告（${this.modelName}）`,
-          message: reportContent,
-          confirmButtonText: '我知道了',
-          messageAlign: 'left'
-        }).then(() => {
-          // 可在此处调用 API 提交数据到后端保存
-          // this.$store.commit('SET_DIAGNOSIS_INFO', this.form)
+        this.$store.commit('SET_REPORT_DATA', {
+          content: reportContent,
+          modelName: this.modelName,
+          company: this.form.company,
+          time: new Date().toLocaleString('zh-CN')
         })
+
+        this.$router.push('/report')
       } catch (error) {
         toast.clear()
         console.error('生成报告失败:', error)
@@ -460,17 +424,6 @@ export default {
       height: 14px;
       background: #1989fa;
       border-radius: 2px;
-    }
-  }
-
-  .tag-list {
-    padding: 12px 16px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-
-    .org-tag {
-      margin-right: 0;
     }
   }
 

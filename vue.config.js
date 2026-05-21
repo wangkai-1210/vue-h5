@@ -12,6 +12,7 @@ module.exports = defineConfig({
   devServer: {
     port: 8080,
     open: true,
+    webSocketServer: false,
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

@@ -17,6 +17,12 @@ const routes = [
     meta: { title: '关于' }
   },
   {
+    path: '/report',
+    name: 'Report',
+    component: () => import('@/views/Report.vue'),
+    meta: { title: '诊断分析报告' }
+  },
+  {
     path: '*',
     redirect: '/'
   }

@@ -146,7 +146,7 @@ function buildDiagnosisPrompt(formData) {
 - 产业链位置：${chain?.length ? chain.join('、') : '未填写'}
 
 【组织架构】
-现有部门：${orgList?.length ? orgList.join('、') : '未填写'}
+${orgList || '未填写'}
 
 【年度目标】
 - 一年目标：${targetYear1 ? targetYear1 + '双' : '未填写'}

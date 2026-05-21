@@ -1,4 +1,3 @@
-/Users/wangkai/Desktop/ceshi/vue2-mobile-h5/.github/workflows/deploy.yml
 name: Deploy to GitHub Pages
 
 on:
