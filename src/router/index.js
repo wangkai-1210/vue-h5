@@ -3,36 +3,25 @@ import VueRouter from 'vue-router'
 
 Vue.use(VueRouter)
 
+// 导入路由模块
+import businessRoutes from './modules/business'
+import lifeRoutes from './modules/life'
+import mineRoutes from './modules/mine'
+import otherRoutes from './modules/other'
+
+// 合并所有路由
 const routes = [
-  {
-    path: '/',
-    name: 'Home',
-    component: () => import('@/views/Home.vue'),
-    meta: { title: '首页', keepAlive: true }
-  },
-  {
-    path: '/about',
-    name: 'About',
-    component: () => import('@/views/About.vue'),
-    meta: { title: '关于' }
-  },
-  {
-    path: '/report',
-    name: 'Report',
-    component: () => import('@/views/Report.vue'),
-    meta: { title: '诊断分析报告' }
-  },
-  {
-    path: '*',
-    redirect: '/'
-  }
+  ...businessRoutes,
+  ...lifeRoutes,
+  ...mineRoutes,
+  ...otherRoutes
 ]
 
 const router = new VueRouter({
   mode: 'hash',
   base: process.env.BASE_URL,
   routes,
-  scrollBehavior(to, from, savedPosition) {
+  scrollBehavior(_to, _from, savedPosition) {
     if (savedPosition) {
       return savedPosition
     } else {
@@ -41,8 +30,7 @@ const router = new VueRouter({
   }
 })
 
-// 路由守卫：设置页面标题
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   document.title = to.meta.title || 'Vue2 移动端 H5'
   next()
 })
