@@ -58,7 +58,7 @@
         </div>
 
         <van-tabbar-item slot="reference" name="life" @click="openLifeSubmenu">
-          <span>生命</span>
+          <span>命理</span>
           <template #icon="props">
             <van-icon :name="props.active ? 'like' : 'like-o'" />
           </template>
@@ -122,8 +122,8 @@ export default {
         { text: '数据分析', icon: 'bar-chart-o', routeName: 'BusinessAnalysis' }
       ],
       lifeActions: [
-        { text: '八字', icon: 'notes-o', routeName: 'LifeBazi' },
-        { text: '奇门', icon: 'fire-o', routeName: 'LifeQimen' }
+        { text: '八字', icon: 'notes-o', routeName: 'MingliBaZi' },
+        { text: '奇门', icon: 'fire-o', routeName: 'MingliQiMenDunJia' }
       ],
       mineActions: [
         { text: '个人中心', icon: 'user-o', routeName: 'MineProfile' }
@@ -261,6 +261,13 @@ export default {
     margin-left: 12px;
     font-size: 16px;
     color: #1989fa;
+  }
+}
+::v-deep {
+  .van-popover__wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 </style>

@@ -113,6 +113,35 @@ export function generateReport(formData, modelKey = 'deepseek') {
   })
 }
 
+/**
+ * 通用聊天补全
+ * @param {string} prompt 用户提示词
+ * @param {string} systemPrompt 系统提示词
+ * @param {string} modelKey 模型 key，默认 deepseek
+ * @param {number} maxTokens 最大 token 数，默认 4096
+ */
+export function chatCompletion(prompt, systemPrompt = '', modelKey = 'deepseek', maxTokens = 4096) {
+  const config = MODEL_CONFIGS.find(m => m.key === modelKey) || MODEL_CONFIGS[0]
+  const client = createClient(config.baseURL, config.apiKeyEnv)
+
+  const messages = []
+  if (systemPrompt) {
+    messages.push({ role: 'system', content: systemPrompt })
+  }
+  messages.push({ role: 'user', content: prompt })
+
+  return client({
+    url: '/chat/completions',
+    method: 'post',
+    data: {
+      model: config.model,
+      messages,
+      temperature: 0.7,
+      max_tokens: maxTokens
+    }
+  })
+}
+
 function buildDiagnosisPrompt(formData) {
   const {
     name,
