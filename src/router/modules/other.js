@@ -12,6 +12,12 @@ export default [
     meta: { title: '诊断分析报告' }
   },
   {
+    path: '/report-display',
+    name: 'ReportDisplay',
+    component: () => import('@/components/ReportDisplay.vue'),
+    meta: { title: '分析报告' }
+  },
+  {
     path: '*',
     redirect: '/business/diagnosis'
   }

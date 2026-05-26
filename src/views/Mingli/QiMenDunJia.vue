@@ -48,35 +48,10 @@
         />
       </van-popup>
 
-      <!-- 阴阳和局数选择 -->
+      <!-- 阴阳和局数显示（自动计算，不可手动修改） -->
       <van-cell-group inset class="setting-group">
-        <van-field label="阴阳局">
-          <template #input>
-            <van-radio-group v-model="yyPan" direction="horizontal" @change="onYyChange">
-              <van-radio name="y1">阳</van-radio>
-              <van-radio name="y2">阴</van-radio>
-            </van-radio-group>
-          </template>
-        </van-field>
-        <van-field
-          v-model="Ju"
-          label="局数"
-          placeholder="请选择局数"
-          readonly
-          clickable
-          @click="showJuPicker = true"
-        />
+        <van-field label="阴阳局" :value="YYxianshi + Juxianshi" readonly />
       </van-cell-group>
-
-      <van-popup v-model="showJuPicker" round position="bottom">
-        <van-picker
-          show-toolbar
-          title="选择局数"
-          :columns="juColumns"
-          @confirm="onJuConfirm"
-          @cancel="showJuPicker = false"
-        />
-      </van-popup>
 
       <!-- 排盘结果 -->
       <div v-if="YMD" class="result-card">
@@ -119,15 +94,19 @@
             v-for="(item, index) in gridData"
             :key="index"
             class="grid-cell"
-            :class="{ center: index === 4 }"
+            :class="{ center: item.number === 5 }"
           >
             <div class="cell-number">{{ item.number }}</div>
             <div class="cell-gong">{{ item.gong }}</div>
-            <div class="cell-tg">{{ item.tg }}</div>
+            <div class="cell-dipan">{{ item.dipan }}</div>
+            <div class="cell-tianpan">{{ item.tianpan }}</div>
             <div class="cell-xing">{{ item.xing }}</div>
             <div class="cell-men">{{ item.men }}</div>
             <div class="cell-shen">{{ item.shen }}</div>
           </div>
+        </div>
+        <div class="legend">
+          <span>地盘奇仪</span> <span>天盘奇仪</span> <span>九星</span> <span>八门</span> <span>八神</span>
         </div>
       </div>
 
@@ -163,9 +142,7 @@ import {
   Popup,
   DatetimePicker,
   Picker,
-  Button,
-  Radio,
-  RadioGroup
+  Button
 } from 'vant'
 import { calendarChange } from '@/utils/ganzhi.js'
 import { params } from '@/utils/draw3.js'
@@ -180,9 +157,7 @@ export default {
     [Popup.name]: Popup,
     [DatetimePicker.name]: DatetimePicker,
     [Picker.name]: Picker,
-    [Button.name]: Button,
-    [Radio.name]: Radio,
-    [RadioGroup.name]: RadioGroup
+    [Button.name]: Button
   },
   data() {
     const now = new Date()
@@ -190,10 +165,9 @@ export default {
     return {
       showDatePicker: false,
       showTimePicker: false,
-      showJuPicker: false,
       selectedDate: defaultDate,
       dateText: '',
-      selectedTimeIndex: 7,
+      selectedTimeIndex: 7,   // 默认午时
       defaultTimeIndex: 6,
       timeText: '',
       minDate: new Date(1900, 0, 1),
@@ -212,31 +186,32 @@ export default {
         { text: '戌时 (19:00-21:00)', value: 11 },
         { text: '亥时 (21:00-23:00)', value: 12 }
       ],
-      juColumns: ['1', '2', '3', '4', '5', '6', '7', '8', '9'],
-      // 基础数据
-      Tg: [],
-      Dz: [],
-      Xing: [],
-      Men: [],
-      Shen: [],
-      Bg: [],
-      xtBg: [],
-      Shu: ['1', '8', '3', '4', '9', '2', '7', '6'],
+      // 基础数据（从 params 导入）
+      Tg: [],      // 十天干 ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸']
+      Dz: [],      // 十二地支
+      Xing: [],    // 九星 ['天蓬','天芮','天冲','天辅','天禽','天心','天柱','天任','天英']
+      Men: [],     // 八门 ['休','生','伤','杜','景','死','惊','开']
+      Shen: [],    // 八神 ['值符','螣蛇','太阴','六合','白虎','玄武','九地','九天']
       // 排盘结果
       value2: '',
-      YMD: '',
+      YMD: '',          // 四柱（年月日）
       nlYMD: '',
-      DzTime: '',
-      TgTime: '',
-      yyPan: 'y1',
-      Ju: '1',
-      XunShou: '',
-      XunShou0: '',
-      ZFxing: '',
-      ZFmen: '',
-      TPtg: '',
+      DzTime: '',       // 时支
+      TgTime: '',       // 时干
+      yyPan: 'y1',      // 'y1'阳遁 'y2'阴遁
+      Ju: 1,            // 局数 1-9
+      XunShou: '',      // 旬首（六仪）
+      XunShou0: '',     // 旬首（甲子等）
+      ZFxing: '',       // 值符星
+      ZFmen: '',        // 值使门
       YYxianshi: '阳',
       Juxianshi: '1局',
+      // 排盘核心数据
+      dipan: [],        // 地盘奇仪（9宫顺序）
+      tianpan: [],      // 天盘奇仪（9宫顺序）
+      xingPan: [],      // 九星（9宫顺序）
+      menPan: [],       // 八门（9宫顺序）
+      shenPan: [],      // 八神（9宫顺序）
       // AI
       deepseek_loading: false,
       deepseek_content: null,
@@ -244,50 +219,47 @@ export default {
     }
   },
   computed: {
+    // 按九宫格展示顺序：巽4 离9 坤2 | 震3 中5 兑7 | 艮8 坎1 乾6
     gridData() {
       if (!this.YMD) return []
-      // 九宫格数据：坎(1)、坤(2)、震(3)、巽(4)、中(5)、乾(6)、兑(7)、艮(8)、离(9)
-      // 按三行三列排列：
-      // 巽4 离9 坤2
-      // 震3 中5 兑7
-      // 艮8 坎1 乾6
       const order = [
-        { number: 4, gong: '巽', xing: '天辅', men: '杜', shen: '六' },
-        { number: 9, gong: '离', xing: '天英', men: '景', shen: '蛇' },
-        { number: 2, gong: '坤', xing: '天芮', men: '死', shen: '阴' },
-        { number: 3, gong: '震', xing: '天冲', men: '伤', shen: '符' },
-        { number: 5, gong: '中', xing: '天禽', men: '', shen: '' },
-        { number: 7, gong: '兑', xing: '天柱', men: '惊', shen: '白' },
-        { number: 8, gong: '艮', xing: '天任', men: '生', shen: '玄' },
-        { number: 1, gong: '坎', xing: '天蓬', men: '休', shen: '地' },
-        { number: 6, gong: '乾', xing: '天心', men: '开', shen: '天' }
+        { number: 4, gong: '巽' },
+        { number: 9, gong: '离' },
+        { number: 2, gong: '坤' },
+        { number: 3, gong: '震' },
+        { number: 5, gong: '中' },
+        { number: 7, gong: '兑' },
+        { number: 8, gong: '艮' },
+        { number: 1, gong: '坎' },
+        { number: 6, gong: '乾' }
       ]
-
-      // 根据阴阳局和局数计算天盘
-      const tgju = this.setQju(this.yyPan, parseInt(this.Ju))
-      const result = order.map((item) => {
-        const tg = tgju[item.number - 1] || ''
+      return order.map(item => {
+        const idx = item.number - 1
         return {
           ...item,
-          tg
+          dipan: this.dipan[idx] || '',
+          tianpan: this.tianpan[idx] || '',
+          xing: this.xingPan[idx] || '',
+          men: this.menPan[idx] || '',
+          shen: this.shenPan[idx] || ''
         }
       })
-      return result
     }
   },
   mounted() {
+    // 初始化基础数据
     this.Tg = params.globalTg
     this.Dz = params.globalDz
     this.Xing = params.globalXing
     this.Men = params.globalMen
     this.Shen = params.globalShen
-    this.Bg = params.globalBg
-    this.xtBg = params.globalxtBg
 
+    // 默认排今日午时
     this.onDateConfirm(this.selectedDate)
     this.onTimeConfirm({ text: this.timeColumns[6].text, value: 7 }, 6)
   },
   methods: {
+    // 日期确认
     onDateConfirm(value) {
       this.selectedDate = value
       const year = value.getFullYear()
@@ -298,192 +270,310 @@ export default {
       this.showDatePicker = false
       this.calcQimen()
     },
+    // 时辰确认
     onTimeConfirm(value) {
       this.selectedTimeIndex = value.value
       this.timeText = value.text
       this.showTimePicker = false
       this.calcQimen()
     },
-    onJuConfirm(value) {
-      this.Ju = value
-      this.Juxianshi = value + '局'
-      this.showJuPicker = false
-      this.drawJu()
-    },
-    onYyChange(name) {
-      if (name === 'y1') {
-        this.YYxianshi = '阳'
-      } else {
-        this.YYxianshi = '阴'
-      }
-      this.drawJu()
-    },
+    // 完整排盘入口
     calcQimen() {
       if (!this.selectedDate || !this.selectedTimeIndex) return
-      this.seJushu()
-      this.drawJu()
+      // 1. 计算四柱、阴阳遁、局数
+      this.computeSizhuAndJu()
+      // 2. 排地盘奇仪
+      this.setDipan()
+      // 3. 计算旬首、值符、值使
+      this.setXunShouAndZhiFuZhiShi()
+      // 4. 排天盘奇仪
+      this.setTianpan()
+      // 5. 排九星
+      this.setXing()
+      // 6. 排八门
+      this.setMen()
+      // 7. 排八神
+      this.setShen()
     },
-    seJushu() {
+
+    // ------------------- 1. 四柱、节气、局数（拆补法）-------------------
+    computeSizhuAndJu() {
       const date = this.selectedDate
       const iTime = this.selectedTimeIndex
-
       const year = date.getFullYear()
-      const month = date.getMonth()
+      const month = date.getMonth() + 1
       const day = date.getDate()
 
-      const data = calendarChange.solar2lunar(year, month + 1, day)
-      const sDzhi = data.gzYear
-      const juN = sDzhi.substring(1, 2)
-      const Nnumber = params.globalDz.indexOf(juN) + 1
+      // 农历转换（得到年月日干支）
+      const lunar = calendarChange.solar2lunar(year, month, day)
+      this.nlYMD = lunar.lYear + '年' + lunar.IMonthCn + lunar.IDayCn
 
-      // 夏至冬至阴阳局判断
-      const DZdayXia = calendarChange.getTerm(year, 9)
-      const lixia = year + '-5-' + DZdayXia
-      const DZdayDong = calendarChange.getTerm(year, 24)
-      const dongzhi = year + '-12-' + DZdayDong
+      const yearGz = lunar.gzYear      // 年柱
+      const monthGz = lunar.gzMonth    // 月柱
+      const dayGz = lunar.gzDay        // 日柱
+      this.YMD = `${yearGz} ${monthGz} ${dayGz}`
 
-      const oDate1 = new Date(lixia)
-      const oDate2 = new Date(dongzhi)
-      if (date.getTime() > oDate1.getTime() && date.getTime() <= oDate2.getTime()) {
-        this.yyPan = 'y2'
-        this.YYxianshi = '阴'
+      // 时柱
+      this.DzTime = this.Dz[iTime - 1]               // 地支
+      const rTg = this.Tg.indexOf(dayGz.charAt(0))   // 日干索引（甲0～癸9）
+      let tIndex = (rTg + 1) * 2 + iTime - 2         // 时干序号（1-10）
+      tIndex = ((tIndex - 1) % 10)                   // 0-9
+      this.TgTime = this.Tg[tIndex]
+      const shiGan = this.Tg[tIndex]
+
+      // 获取当前节气，确定阴阳遁和局数（拆补法）
+      // 先找到当前时间对应的节气（根据日柱判断符头）
+      const solarTerm = this.getCurrentSolarTerm(year, month, day)
+      // 根据节气确定阴阳遁：冬至~夏至为阳遁，夏至~冬至为阴遁
+      const isYang = this.isYangDun(solarTerm)
+      this.yyPan = isYang ? 'y1' : 'y2'
+      this.YYxianshi = isYang ? '阳' : '阴'
+
+      // 计算局数（拆补法：根据符头所在的节气三元）
+      const ju = this.getJuFromSolarTerm(solarTerm, year, month, day, shiGan)
+      this.Ju = ju
+      this.Juxianshi = ju + '局'
+    },
+
+    // 获取当前节气（返回节气名称如“冬至”）
+    getCurrentSolarTerm(year, month, day) {
+      // 简化：使用已有的getTerm，返回该年所有节气日期，然后比较
+      const solarTerms = [
+        '小寒', '大寒', '立春', '雨水', '惊蛰', '春分', '清明', '谷雨',
+        '立夏', '小满', '芒种', '夏至', '小暑', '大暑', '立秋', '处暑',
+        '白露', '秋分', '寒露', '霜降', '立冬', '小雪', '大雪', '冬至'
+      ]
+      const date = new Date(year, month-1, day)
+      let currentTerm = '冬至' // 默认
+      for (let i = 0; i < solarTerms.length; i++) {
+        const termDay = calendarChange.getTerm(year, i+1)  // i+1 为节气序号
+        if (termDay) {
+          const termDate = new Date(year, month-1, termDay)
+          if (date >= termDate) {
+            currentTerm = solarTerms[i]
+          } else {
+            break
+          }
+        }
+      }
+      return currentTerm
+    },
+
+    isYangDun(solarTerm) {
+      const yangTerms = ['冬至', '小寒', '大寒', '立春', '雨水', '惊蛰', '春分', '清明', '谷雨', '立夏', '小满', '芒种']
+      return yangTerms.includes(solarTerm)
+    },
+
+    // 拆补法计算局数（基于符头和节气）
+    getJuFromSolarTerm(solarTerm, year, month, day) {
+      // 获取日柱干支
+      const lunar = calendarChange.solar2lunar(year, month, day)
+      const dayGz = lunar.gzDay
+      const dayGan = dayGz[0]
+      // const dayZhi = dayGz[1]
+      // 符头：甲己为上元，乙庚为中元，丙辛为下元
+      let yuan
+      if (dayGan === '甲' || dayGan === '己') yuan = '上元'
+      else if (dayGan === '乙' || dayGan === '庚') yuan = '中元'
+      else yuan = '下元'
+
+      // 节气对应的局数表（阳遁顺排，阴遁逆排）
+      const termJu = {
+        // 阳遁
+        '冬至': { '上元': 1, '中元': 7, '下元': 4 },
+        '小寒': { '上元': 2, '中元': 8, '下元': 5 },
+        '大寒': { '上元': 3, '中元': 9, '下元': 6 },
+        '立春': { '上元': 8, '中元': 5, '下元': 2 },
+        '雨水': { '上元': 9, '中元': 6, '下元': 3 },
+        '惊蛰': { '上元': 1, '中元': 7, '下元': 4 },
+        '春分': { '上元': 3, '中元': 9, '下元': 6 },
+        '清明': { '上元': 4, '中元': 1, '下元': 7 },
+        '谷雨': { '上元': 5, '中元': 2, '下元': 8 },
+        '立夏': { '上元': 4, '中元': 1, '下元': 7 },
+        '小满': { '上元': 5, '中元': 2, '下元': 8 },
+        '芒种': { '上元': 6, '中元': 3, '下元': 9 },
+        // 阴遁
+        '夏至': { '上元': 9, '中元': 3, '下元': 6 },
+        '小暑': { '上元': 8, '中元': 2, '下元': 5 },
+        '大暑': { '上元': 7, '中元': 1, '下元': 4 },
+        '立秋': { '上元': 2, '中元': 5, '下元': 8 },
+        '处暑': { '上元': 1, '中元': 4, '下元': 7 },
+        '白露': { '上元': 9, '中元': 3, '下元': 6 },
+        '秋分': { '上元': 7, '中元': 1, '下元': 4 },
+        '寒露': { '上元': 6, '中元': 9, '下元': 3 },
+        '霜降': { '上元': 5, '中元': 8, '下元': 2 },
+        '立冬': { '上元': 6, '中元': 9, '下元': 3 },
+        '小雪': { '上元': 5, '中元': 8, '下元': 2 },
+        '大雪': { '上元': 4, '中元': 7, '下元': 1 }
+      }
+      const ju = termJu[solarTerm][yuan]
+      return ju
+    },
+
+    // ------------------- 2. 地盘奇仪 -------------------
+    setDipan() {
+      // 地盘奇仪顺序：1坎 2坤 3震 4巽 5中 6乾 7兑 8艮 9离
+      // 根据局数，阳遁顺排戊己庚辛壬癸丁丙乙，阴遁逆排
+      const yiShu = ['戊','己','庚','辛','壬','癸','丁','丙','乙']
+      let dipanOrder = []
+      if (this.yyPan === 'y1') { // 阳遁
+        // 从局数对应的宫开始顺排
+        const start = this.Ju - 1
+        for (let i = 0; i < 9; i++) {
+          dipanOrder[(start + i) % 9] = yiShu[i]
+        }
+      } else { // 阴遁
+        const start = this.Ju - 1
+        for (let i = 0; i < 9; i++) {
+          dipanOrder[(start - i + 9) % 9] = yiShu[i]
+        }
+      }
+      this.dipan = dipanOrder  // 索引0对应坎1宫，依此类推
+    },
+
+    // ------------------- 3. 旬首、值符、值使 -------------------
+    setXunShouAndZhiFuZhiShi() {
+      const shiGan = this.TgTime
+      const shiZhi = this.DzTime
+      const tgIndex = this.Tg.indexOf(shiGan)
+      const dzIndex = this.Dz.indexOf(shiZhi)
+      let diff = tgIndex - dzIndex
+      if (diff < 0) diff += 12
+      // 旬首地支
+      const xunShouZhi = this.Dz[(dzIndex - diff + 12) % 12]
+      // 旬首天干根据六仪规律
+      const xunShouMap = {
+        '子': '戊', '戌': '己', '申': '庚', '午': '辛', '辰': '壬', '寅': '癸'
+      }
+      this.XunShou = xunShouMap[xunShouZhi]
+      this.XunShou0 = '甲' + xunShouZhi
+
+      // 旬首所在宫位（地盘）
+      const xunShouIndex = this.dipan.indexOf(this.XunShou)  // 0-8
+      // 值符星 = 旬首所在宫对应的原始九星
+      const starOrder = ['天蓬','天芮','天冲','天辅','天禽','天心','天柱','天任','天英']
+      this.ZFxing = starOrder[xunShouIndex]
+      // 值使门 = 旬首所在宫对应的原始八门（需要映射：1休2生3伤4杜5景6死7惊8开）
+      const menOrder = ['休','生','伤','杜','景','死','惊','开']
+      // 八门对应宫位：1休-坎，2生-艮，3伤-震，4杜-巽，5景-离，6死-坤，7惊-兑，8开-乾
+      const menPalace = [1,8,3,4,9,2,7,6]  // 索引0休在坎1
+      const palaceNum = xunShouIndex + 1   // 1-9
+      let menIdx = menPalace.indexOf(palaceNum)
+      if (menIdx === -1) menIdx = 4 // 中宫寄坤，景门？实际中宫不用，但取景门
+      this.ZFmen = menOrder[menIdx]
+    },
+
+    // ------------------- 4. 天盘奇仪 -------------------
+    setTianpan() {
+      // 天盘奇仪：将旬首所在宫的地盘奇仪移到时干所在宫，然后顺排
+      const xunShou = this.XunShou
+      const shiGan = this.TgTime
+      const xunIndex = this.dipan.indexOf(xunShou)      // 旬首宫位
+      const shiGanIndex = this.dipan.indexOf(shiGan)    // 时干宫位（实际上时干在地盘某宫）
+      // 若找不到时干（一般能找到），则用值符星宫位代替
+      let tianpanBase = [...this.dipan]
+      if (xunIndex !== -1 && shiGanIndex !== -1) {
+        // 将旬首所在宫的地盘奇仪移动到时干宫
+        // const moveValue = tianpanBase[xunIndex]
+        // 偏移量
+        const offset = (shiGanIndex - xunIndex + 9) % 9
+        const newPan = new Array(9)
+        for (let i = 0; i < 9; i++) {
+          newPan[(i + offset) % 9] = tianpanBase[i]
+        }
+        this.tianpan = newPan
       } else {
-        this.yyPan = 'y1'
-        this.YYxianshi = '阳'
+        this.tianpan = [...this.dipan]
       }
-
-      // 局数
-      const qyushu = parseInt(Nnumber) + parseInt(data.lMonth) + parseInt(data.lDay) + parseInt(iTime)
-      let Jushu = qyushu % 9
-      if (Jushu === 0) {
-        Jushu = 9
-      }
-      this.Ju = String(Jushu)
-      this.Juxianshi = Jushu + '局'
     },
-    drawJu() {
-      const date = this.selectedDate
-      const iTime = this.selectedTimeIndex
 
-      const year = date.getFullYear()
-      const month = date.getMonth()
-      const day = date.getDate()
+    // ------------------- 5. 九星排布 -------------------
+    setXing() {
+      // 九星原始顺序（对应宫位1-9）
+      const starOrder = ['天蓬','天芮','天冲','天辅','天禽','天心','天柱','天任','天英']
+      // 值符星原始宫位
+      const zhiFuStar = this.ZFxing
+      const zhiFuIndex = starOrder.indexOf(zhiFuStar)   // 0-8
+      // 值符星现在落到时干所在宫（天盘时干宫）
+      const shiGan = this.TgTime
+      const shiGanPalace = this.dipan.indexOf(shiGan)   // 时干在地盘宫位
+      if (shiGanPalace === -1) return
+      // 偏移量
+      const offset = (shiGanPalace - zhiFuIndex + 9) % 9
+      const newXing = new Array(9)
+      for (let i = 0; i < 9; i++) {
+        newXing[(i + offset) % 9] = starOrder[i]
+      }
+      // 中宫天禽星寄坤二宫（宫位索引1，因为坤2宫对应索引1）
+      // 通常天禽星随天芮星
+      const tianRuiIndex = newXing.indexOf('天芮')
+      if (tianRuiIndex !== -1 && newXing[1] === '天芮') {
+        newXing[4] = '天禽'  // 中宫5宫索引4
+      }
+      this.xingPan = newXing
+    },
 
-      const data = calendarChange.solar2lunar(year, month + 1, day)
-      this.nlYMD = data.cYear + '年' + data.IMonthCn + data.IDayCn
-
-      const yearGz = data.gzYear
-      const monthGz = data.gzMonth
-      const dayGz = data.gzDay
-
-      this.YMD = yearGz + ' ' + monthGz + ' ' + dayGz
-
-      // 地支时辰
-      this.DzTime = this.Dz[iTime - 1]
-
-      // 日天干
-      const sday = dayGz.substring(0, 1)
-      const rTg = this.Tg.indexOf(sday)
-
-      // 时天干 = 日天干×2 + 时地支 - 2
-      let numuberTg = Number(rTg + 1) * 2
-      numuberTg = numuberTg + Number(iTime) - 2
-      numuberTg = numuberTg % 10
-      if (numuberTg === 0) {
-        numuberTg = 9
+    // ------------------- 6. 八门排布 -------------------
+    setMen() {
+      const menOrder = ['休','生','伤','杜','景','死','惊','开']
+      const zhiShiMen = this.ZFmen
+      const zhiShiIndex = menOrder.indexOf(zhiShiMen)
+      // 值使门落宫：根据时辰旬首到当前时辰的流转步数
+      const shiZhi = this.DzTime
+      const xunShouZhi = this.XunShou0[1]  // 旬首地支
+      const startIndex = this.Dz.indexOf(xunShouZhi)
+      const endIndex = this.Dz.indexOf(shiZhi)
+      let steps = endIndex - startIndex
+      if (steps < 0) steps += 12
+      // 值使门原始宫位（1休2生3伤4杜5景6死7惊8开）
+      const menPalaceMap = [1,8,3,4,9,2,7,6]
+      let startPalace = menPalaceMap[zhiShiIndex]
+      // 阴遁逆数，阳遁顺数
+      let finalPalace = startPalace
+      if (this.yyPan === 'y1') { // 阳遁顺数
+        finalPalace = (startPalace - 1 + steps) % 9 + 1
       } else {
-        numuberTg = numuberTg - 1
+        finalPalace = (startPalace - 1 - steps + 900) % 9 + 1
       }
-
-      this.TgTime = this.Tg[numuberTg]
-      const sTg = this.Tg[numuberTg]
-
-      // 取旬首
-      this.XunShou = this.setXunShou(sTg, this.DzTime)
-
-      // 起局
-      const yyp = this.yyPan
-      const Tgju = this.setQju(yyp, parseInt(this.Ju))
-
-      // 取值符
-      let ZFshu = Tgju.indexOf(this.XunShou)
-      if (ZFshu === 4) {
-        ZFshu = 1
+      // 将八门按顺序排入九宫（从值使门落宫开始顺/逆排）
+      const menPan = new Array(9).fill('')
+      let currentMenIdx = zhiShiIndex
+      let currentPalace = finalPalace
+      for (let i = 0; i < 8; i++) {
+        menPan[currentPalace - 1] = menOrder[currentMenIdx % 8]
+        if (this.yyPan === 'y1') { // 阳遁顺转
+          currentPalace = (currentPalace % 9) + 1
+        } else { // 阴遁逆转
+          currentPalace = (currentPalace - 2 + 9) % 9 + 1
+        }
+        currentMenIdx = (currentMenIdx + 1) % 8
       }
-      const ZFshuIndex = this.Shu.indexOf((ZFshu + 1).toString())
-      this.ZFxing = this.Xing[ZFshuIndex]
-      this.ZFmen = this.Men[ZFshuIndex]
-
-      // 天盘排序
-      this.TPtg = this.setTianPan(Tgju, this.XunShou, sTg, yyp)
+      this.menPan = menPan
     },
-    setXunShou(tiangan, dizhi) {
-      let sXs = ''
-      const Tnumber = this.Tg.indexOf(tiangan)
-      const Dnumber = this.Dz.indexOf(dizhi)
-      let jiaX
-      if (Tnumber < Dnumber) {
-        jiaX = this.Dz[Dnumber - Tnumber]
-      } else if (Tnumber === Dnumber) {
-        jiaX = this.Dz[0]
-      } else {
-        jiaX = this.Dz[Dnumber + 12 - Tnumber]
+
+    // ------------------- 7. 八神排布 -------------------
+    setShen() {
+      const shenOrder = ['值符','螣蛇','太阴','六合','白虎','玄武','九地','九天']
+      // 八神值符落在值符星落宫（即天盘时干宫）
+      const shiGan = this.TgTime
+      const shiGanPalace = this.dipan.indexOf(shiGan)   // 时干地盘宫位索引
+      if (shiGanPalace === -1) return
+      const shenPan = new Array(9).fill('')
+      let currentShenIdx = 0  // 值符开始
+      let currentPalace = shiGanPalace + 1   // 1-9
+      for (let i = 0; i < 8; i++) {
+        shenPan[currentPalace - 1] = shenOrder[currentShenIdx]
+        if (this.yyPan === 'y1') { // 阳遁顺转
+          currentPalace = (currentPalace % 9) + 1
+        } else {
+          currentPalace = (currentPalace - 2 + 9) % 9 + 1
+        }
+        currentShenIdx = (currentShenIdx + 1) % 8
       }
-      switch (jiaX) {
-        case '子':
-          sXs = '戊'
-          this.XunShou0 = '甲子'
-          break
-        case '戌':
-          sXs = '己'
-          this.XunShou0 = '甲戌'
-          break
-        case '申':
-          sXs = '庚'
-          this.XunShou0 = '甲申'
-          break
-        case '午':
-          sXs = '辛'
-          this.XunShou0 = '甲午'
-          break
-        case '辰':
-          sXs = '壬'
-          this.XunShou0 = '甲辰'
-          break
-        case '寅':
-          sXs = '癸'
-          this.XunShou0 = '甲寅'
-          break
-      }
-      return sXs
+      this.shenPan = shenPan
     },
-    setQju(yy, iJu) {
-      let Yinshu
-      if (yy === 'y2') {
-        Yinshu = params.globalYinShu[iJu - 1]
-      } else {
-        Yinshu = params.globalYangShu[iJu - 1]
-      }
-      const Ppan = params.globalPpan
-      const TgSX = []
-      for (let i = 1; i < 10; i++) {
-        TgSX[Yinshu.substring(i - 1, i) - 1] = Ppan[i - 1]
-      }
-      return TgSX
-    },
-    setTianPan(Tgju) {
-      // 天盘排序逻辑（保留原代码结构）
-      // let pan8 = []
-      // if (yy === 'y1') {
-      //   pan8 = [1, 8, 3, 4, 9, 2, 7, 6, 1]
-      // } else {
-      //   pan8 = [1, 6, 7, 2, 9, 4, 3, 8, 1]
-      // }
-      // const shu1 = Tgju.indexOf(Xunshou)
-      // const shu2 = Tgju.indexOf(Shigan)
-      // 原代码 TpSX 未完整实现，保留返回值
-      return Tgju
-    },
+
+    // ------------------- AI 分析 -------------------
     async fetchData() {
       this.deepseek_loading = true
       try {
@@ -516,6 +606,14 @@ export default {
         )
         if (res && res.choices && res.choices[0]) {
           this.deepseek_content = res.choices[0].message.content
+          // this.$store.commit("SET_REPORT_DATA", {
+          //   content: this.deepseek_content,
+          //   modelName: "",
+          //   company: "",
+          //   time: new Date().toLocaleString("zh-CN"),
+          // });
+
+          // this.$router.push("/report-display");
         }
       } catch (error) {
         console.error('API 调用失败:', error)
@@ -523,6 +621,9 @@ export default {
         this.deepseek_loading = false
       }
     }
+  },
+  beforeDestroy() {
+    this.$store.commit('SET_REPORT_DATA', null)
   }
 }
 </script>
@@ -594,13 +695,14 @@ export default {
       .grid-cell {
         background: #fff;
         border-radius: 4px;
-        padding: 8px 4px;
+        padding: 6px 2px;
         text-align: center;
-        min-height: 80px;
+        min-height: 100px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        font-size: 11px;
 
         &.center {
           background: #fff7e6;
@@ -608,30 +710,29 @@ export default {
 
         .cell-number {
           font-size: 12px;
+          font-weight: bold;
           color: #969799;
-          margin-bottom: 2px;
         }
-
         .cell-gong {
           font-size: 14px;
-          font-weight: 600;
+          font-weight: bold;
           color: #323233;
-          margin-bottom: 2px;
         }
-
-        .cell-tg {
-          font-size: 13px;
-          color: #1989fa;
-          margin-bottom: 2px;
+        .cell-dipan, .cell-tianpan, .cell-xing, .cell-men, .cell-shen {
+          line-height: 1.4;
+          margin-top: 2px;
         }
-
-        .cell-xing,
-        .cell-men,
-        .cell-shen {
-          font-size: 11px;
-          color: #666;
-          line-height: 1.3;
-        }
+      }
+    }
+    .legend {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 10px;
+      color: #969799;
+      span {
+        flex: 1;
+        text-align: center;
       }
     }
   }

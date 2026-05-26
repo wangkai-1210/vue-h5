@@ -396,6 +396,9 @@ export default {
         Toast.fail('生成报告失败，请重试')
       }
     }
+  },
+  beforeDestroy() {
+    this.$store.commit('SET_REPORT_DATA', null)
   }
 }
 </script>

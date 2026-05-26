@@ -1,17 +1,4 @@
-/**
- * 1900-2100区间内的公历、农历互转
- * @charset  UTF-8
- * @Author  chenjinxin(chenjinxin@primeton.com)
- * @Time  2014-7-21
- * @Version  $ID$
- * @公历转农历：calendarChange.solar2lunar(1987,11,01);
- * @农历转公历：calendarChange.lunar2solar(1987,09,10);
- */
 export const calendarChange = {
-    /**
-     * 农历1900-2100的闰大小信息表
-     * @return Hex进制数据
-     */
     lunarInfo: [0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950,
         0x16554, 0x056a0, 0x09ad0, 0x055d2,
         0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0,
@@ -54,35 +41,11 @@ export const calendarChange = {
         0x0a2d0, 0x0d150, 0x0f252,
         0x0d520
     ],
-
-    /**
-     * 公历每月常规天数表
-     */
     solarMonth: [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
-
-    /**
-     * 天干数组
-     */
     Gan: ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"],
-
-    /**
-     * 地支数组
-     */
     Zhi: ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"],
-
-    /**
-     * 生肖对应数组
-     */
     Animals: ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"],
-
-    /**
-     * 二十四节气名称
-     */
     solarTerm: ["小寒", "大寒", "立春", "雨水", "惊蛰", "春分", "清明", "谷雨", "立夏", "小满", "芒种", "夏至", "小暑", "大暑", "立秋", "处暑", "白露", "秋分", "寒露", "霜降", "立冬", "小雪", "大雪", "冬至"],
-
-    /**
-     * 1900-2100节气日期数据
-     */
     sTermInfo: ['9778397bd097c36b0b6fc9274c91aa',
         '97b6b97bd19801ec9210c965cc920e',
         '97bcf97c3598082c95f8c965cc920f',
@@ -269,27 +232,10 @@ export const calendarChange = {
         '7f07e7f0e47f531b0723b0b6fb0721',
         '7f0e27f1487f531b0b0bb0b6fb0722'
     ],
-
-    /**
-     * 中文数字简写
-     */
     nStr1: ["日", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"],
-
-    /**
-     * 日期前缀文字
-     */
     nStr2: ["初", "十", "廿", "卅"],
-
-    /**
-     * 农历月份中文称呼
-     */
     nStr3: ["正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "冬", "腊"],
 
-    /**
-     * 获取农历整年总天数
-     * @param {number} y 农历年份
-     * @returns {number} 总天数
-     */
     lYearDays: function (y) {
         let sum = 348;
         for (let i = 0x8000; i > 0x8; i >>= 1) {
@@ -298,20 +244,10 @@ export const calendarChange = {
         return sum + this.leapDays(y);
     },
 
-    /**
-     * 获取当年闰月月份，无闰月返回0
-     * @param {number} y 农历年份
-     * @returns {number} 闰月序号
-     */
     leapMonth: function (y) {
         return this.lunarInfo[y - 1900] & 0xf;
     },
 
-    /**
-     * 获取闰月天数，无闰月返回0
-     * @param {number} y 农历年份
-     * @returns {number} 29|30|0
-     */
     leapDays: function (y) {
         if (this.leapMonth(y)) {
             return (this.lunarInfo[y - 1900] & 0x10000) ? 30 : 29;
@@ -319,29 +255,13 @@ export const calendarChange = {
         return 0;
     },
 
-    /**
-     * 获取农历单月天数
-     * @param {number} y 年
-     * @param {number} m 月
-     * @returns {number} 29|30|-1
-     */
     monthDays: function (y, m) {
-        if (m > 12 || m < 1) {
-            return -1;
-        }
+        if (m > 12 || m < 1) return -1;
         return (this.lunarInfo[y - 1900] & (0x10000 >> m)) ? 30 : 29;
     },
 
-    /**
-     * 获取公历当月天数
-     * @param {number} y 公历年
-     * @param {number} m 公历月
-     * @returns {number} 天数
-     */
     solarDays: function (y, m) {
-        if (m > 12 || m < 1) {
-            return -1;
-        }
+        if (m > 12 || m < 1) return -1;
         const ms = m - 1;
         if (ms === 1) {
             return ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 29 : 28;
@@ -350,25 +270,12 @@ export const calendarChange = {
         }
     },
 
-    /**
-     * 根据偏移量换算干支
-     * @param {number} offset 偏移量
-     * @returns {string} 干支名称
-     */
     toGanZhi: function (offset) {
         return this.Gan[offset % 10] + this.Zhi[offset % 12];
     },
 
-    /**
-     * 获取指定节气公历日期
-     * @param {number} y 年份
-     * @param {number} n 节气序号1~24
-     * @returns {number} 日期
-     */
     getTerm: function (y, n) {
-        if (y < 1900 || y > 2100 || n < 1 || n > 24) {
-            return -1;
-        }
+        if (y < 1900 || y > 2100 || n < 1 || n > 24) return -1;
         const _table = this.sTermInfo[y - 1900];
         const _info = [
             parseInt(`0x${_table.substr(0, 5)}`).toString(),
@@ -379,143 +286,99 @@ export const calendarChange = {
             parseInt(`0x${_table.substr(25, 5)}`).toString()
         ];
         const _calday = [
-            _info[0].substr(0, 1), _info[0].substr(1, 2),
-            _info[0].substr(3, 1), _info[0].substr(4, 2),
-            _info[1].substr(0, 1), _info[1].substr(1, 2),
-            _info[1].substr(3, 1), _info[1].substr(4, 2),
-            _info[2].substr(0, 1), _info[2].substr(1, 2),
-            _info[2].substr(3, 1), _info[2].substr(4, 2),
-            _info[3].substr(0, 1), _info[3].substr(1, 2),
-            _info[3].substr(3, 1), _info[3].substr(4, 2),
-            _info[4].substr(0, 1), _info[4].substr(1, 2),
-            _info[4].substr(3, 1), _info[4].substr(4, 2),
-            _info[5].substr(0, 1), _info[5].substr(1, 2),
-            _info[5].substr(3, 1), _info[5].substr(4, 2)
+            _info[0].substr(0, 1), _info[0].substr(1, 2), _info[0].substr(3, 1), _info[0].substr(4, 2),
+            _info[1].substr(0, 1), _info[1].substr(1, 2), _info[1].substr(3, 1), _info[1].substr(4, 2),
+            _info[2].substr(0, 1), _info[2].substr(1, 2), _info[2].substr(3, 1), _info[2].substr(4, 2),
+            _info[3].substr(0, 1), _info[3].substr(1, 2), _info[3].substr(3, 1), _info[3].substr(4, 2),
+            _info[4].substr(0, 1), _info[4].substr(1, 2), _info[4].substr(3, 1), _info[4].substr(4, 2),
+            _info[5].substr(0, 1), _info[5].substr(1, 2), _info[5].substr(3, 1), _info[5].substr(4, 2)
         ];
         return parseInt(_calday[n - 1]);
     },
 
-    /**
-     * 月份转为中文农历月
-     * @param {number} m 月份
-     * @returns {string} 中文月名
-     */
     toChinaMonth: function (m) {
-        if (m > 12 || m < 1) {
-            return -1;
-        }
-        let s = this.nStr3[m - 1];
-        s += "月";
-        return s;
+        if (m > 12 || m < 1) return -1;
+        return this.nStr3[m - 1] + "月";
     },
 
-    /**
-     * 日期转为中文农历日
-     * @param {number} d 日期
-     * @returns {string} 中文日名
-     */
     toChinaDay: function (d) {
-        let s;
-        switch (d) {
-            case 10:
-                s = '初十';
-                break;
-            case 20:
-                s = '二十';
-                break;
-            case 30:
-                s = '三十';
-                break;
-            default:
-                s = this.nStr2[Math.floor(d / 10)];
-                s += this.nStr1[d % 10];
-        }
-        return s;
+        if (d === 10) return '初十';
+        if (d === 20) return '二十';
+        if (d === 30) return '三十';
+        return this.nStr2[Math.floor(d / 10)] + this.nStr1[d % 10];
     },
 
-    /**
-     * 根据年份获取生肖
-     * @param {number} y 年份
-     * @returns {string} 生肖
-     */
     getAnimal: function (y) {
         return this.Animals[(y - 4) % 12];
     },
 
-    /**
-     * 公历转农历
-     * @param {number} y 公历年
-     * @param {number} m 公历月
-     * @param {number} d 公历日
-     * @returns {object|number} 农历信息对象
-     */
+    // 公历转农历
     solar2lunar: function (y, m, d) {
-        if (y < 1900 || y > 2100) {
-            return -1;
-        }
-        if (y === 1900 && m === 1 && d < 31) {
-            return -1;
-        }
-        let objDate;
-        if (!y) {
-            objDate = new Date();
-        } else {
-            objDate = new Date(y, parseInt(m) - 1, d);
-        }
-        let year = objDate.getFullYear();
-        let month = objDate.getMonth() + 1;
-        let day = objDate.getDate();
+        if (y < 1900 || y > 2100) return -1;
+        if (y === 1900 && m === 1 && d < 31) return -1;
+
+        const objDate = new Date(y, m - 1, d);
+        const year = objDate.getFullYear();
+        const month = objDate.getMonth() + 1;
+        const day = objDate.getDate();
+
         let offset = (Date.UTC(year, month - 1, day) - Date.UTC(1900, 0, 31)) / 86400000;
-        let i, temp;
-        for (i = 1900; i < 2101 && offset > 0; i++) {
-            temp = this.lYearDays(i);
-            offset -= temp;
-        }
-        if (offset < 0) {
-            offset += temp;
-            i--;
+        if (offset < 0) return -1;
+
+        let lunarYear = 1900;
+        let daysInYear = this.lYearDays(lunarYear);
+        // 确定农历年份（offset 从正月初一起算）
+        while (offset >= daysInYear && lunarYear < 2100) {
+            offset -= daysInYear;
+            lunarYear++;
+            daysInYear = this.lYearDays(lunarYear);
         }
 
-        const nowDate = new Date();
-        const isToday = nowDate.getFullYear() === year && (nowDate.getMonth() + 1) === month && nowDate.getDate() === day;
+        const leap = this.leapMonth(lunarYear);
+        let isLeap = false;
+        let lunarMonth = 1;
+        let lunarDay = 1;
+
+        for (let i = 1; i <= 12; i++) {
+            let monthDays;
+            if (leap > 0 && i === leap) {
+                // 先处理闰月
+                monthDays = this.leapDays(lunarYear);
+                if (offset < monthDays) {
+                    isLeap = true;
+                    lunarMonth = i;
+                    lunarDay = offset + 1;
+                    break;
+                }
+                offset -= monthDays;
+                // 再处理同序号普通月
+                monthDays = this.monthDays(lunarYear, i);
+                if (offset < monthDays) {
+                    isLeap = false;
+                    lunarMonth = i;
+                    lunarDay = offset + 1;
+                    break;
+                }
+                offset -= monthDays;
+            } else {
+                monthDays = this.monthDays(lunarYear, i);
+                if (offset < monthDays) {
+                    lunarMonth = i;
+                    lunarDay = offset + 1;
+                    break;
+                }
+                offset -= monthDays;
+            }
+        }
+
         let nWeek = objDate.getDay();
         const cWeek = this.nStr1[nWeek];
-        if (nWeek === 0) {
-            nWeek = 7;
-        }
-        let lunarYear = i;
-        let leap = this.leapMonth(i);
-        let isLeap = false;
+        if (nWeek === 0) nWeek = 7;
 
-        for (i = 1; i < 13 && offset > 0; i++) {
-            if (leap > 0 && i === (leap + 1) && !isLeap) {
-                --i;
-                isLeap = true;
-                temp = this.leapDays(lunarYear);
-            } else {
-                temp = this.monthDays(lunarYear, i);
-            }
-            if (isLeap && i === (leap + 1)) {
-                isLeap = false;
-            }
-            offset -= temp;
-        }
-
-        if (offset === 0 && leap > 0 && i === leap + 1) {
-            isLeap = !isLeap;
-            if (!isLeap) --i;
-        }
-        if (offset < 0) {
-            offset += temp;
-            --i;
-        }
-        const lunarMonth = i;
-        const lunarDay = offset + 1;
-
-        const sm = month - 1;
+        // 干支年（以立春为界）
         const term3 = this.getTerm(lunarYear, 3);
         let gzY;
-        if (sm < 2 && day < term3) {
+        if (month < 2 || (month === 2 && day < term3)) {
             gzY = this.toGanZhi(lunarYear - 5);
         } else {
             gzY = this.toGanZhi(lunarYear - 4);
@@ -539,8 +402,11 @@ export const calendarChange = {
             Term = this.solarTerm[month * 2 - 1];
         }
 
-        const dayCyclical = Date.UTC(year, sm, 1, 0, 0, 0, 0) / 86400000 + 25567 + 10;
+        const dayCyclical = Date.UTC(year, month - 1, 1) / 86400000 + 25567 + 10;
         const gzD = this.toGanZhi(dayCyclical + day - 1);
+
+        const nowDate = new Date();
+        const isToday = nowDate.getFullYear() === year && (nowDate.getMonth() + 1) === month && nowDate.getDate() === day;
 
         return {
             lYear: lunarYear,
@@ -555,62 +421,53 @@ export const calendarChange = {
             gzYear: gzY,
             gzMonth: gzM,
             gzDay: gzD,
-            isToday,
-            isLeap,
-            nWeek,
+            isToday: isToday,
+            isLeap: isLeap,
+            nWeek: nWeek,
             ncWeek: "星期" + cWeek,
-            isTerm,
-            Term
+            isTerm: isTerm,
+            Term: Term
         };
     },
 
-    /**
-     * 农历转公历
-     * @param {number} y 农历年
-     * @param {number} m 农历月
-     * @param {number} d 农历日
-     * @param {boolean} isLeapMonth 是否闰月
-     * @returns {object|number} 公历信息对象
-     */
+    // 农历转公历（修正偏移量累加逻辑）
     lunar2solar: function (y, m, d, isLeapMonth) {
+        if (y < 1900 || y > 2100) return -1;
         const leapMonth = this.leapMonth(y);
-        // const leapDay = this.leapDays(y);
-        if (isLeapMonth && leapMonth !== m) {
-            return -1;
-        }
-        if ((y === 2100 && m === 12 && d > 1) || (y === 1900 && m === 1 && d < 31)) {
-            return -1;
-        }
-        const monthDay = this.monthDays(y, m);
-        if (y < 1900 || y > 2100 || d > monthDay) {
-            return -1;
-        }
+        if (isLeapMonth && leapMonth !== m) return -1;
+        if ((y === 2100 && m === 12 && d > 1) || (y === 1900 && m === 1 && d < 31)) return -1;
 
+        const monthDays = isLeapMonth ? this.leapDays(y) : this.monthDays(y, m);
+        if (d > monthDays) return -1;
+
+        // 计算从1900年正月初一到目标日期的偏移天数
         let offset = 0;
+        // 累加完整农历年
         for (let i = 1900; i < y; i++) {
             offset += this.lYearDays(i);
         }
-        let leap = 0;
-        let isAdd = false;
+        // 累加目标月之前的月份（正确处理闰月）
+        const leap = this.leapMonth(y);
         for (let i = 1; i < m; i++) {
-            leap = this.leapMonth(y);
-            if (!isAdd) {
-                if (leap <= i && leap > 0) {
-                    offset += this.leapDays(y);
-                    isAdd = true;
-                }
-            }
             offset += this.monthDays(y, i);
+            if (leap > 0 && i === leap) {
+                offset += this.leapDays(y);  // 闰月紧跟在普通月之后
+            }
         }
+        // 如果是闰月，额外加上闰月天数
         if (isLeapMonth) {
-            offset += monthDay;
+            offset += this.leapDays(y);
         }
-        const stmap = Date.UTC(1900, 1, 30, 0, 0, 0);
-        const calObj = new Date((offset + d - 31) * 86400000 + stmap);
-        const cY = calObj.getUTCFullYear();
-        const cM = calObj.getUTCMonth() + 1;
-        const cD = calObj.getUTCDate();
+        // 加上当月日期偏移
+        offset += d - 1;
 
+        const baseDate = Date.UTC(1900, 0, 31);
+        const targetDate = new Date(baseDate + offset * 86400000);
+        const cY = targetDate.getUTCFullYear();
+        const cM = targetDate.getUTCMonth() + 1;
+        const cD = targetDate.getUTCDate();
+
+        // 返回公历日期对应的农历信息（包含 lYear 等）
         return this.solar2lunar(cY, cM, cD);
     }
 };
