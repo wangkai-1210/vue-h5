@@ -87,7 +87,7 @@
         </div>
 
         <div v-if="deepseek_content" class="ai-result">
-          <pre>{{ deepseek_content }}</pre>
+          <!-- <pre>{{ deepseek_content }}</pre> -->
         </div>
       </div>
     </div>
@@ -253,14 +253,14 @@ export default {
         );
         if (res && res.choices && res.choices[0]) {
           this.deepseek_content = res.choices[0].message.content;
-          // this.$store.commit("SET_REPORT_DATA", {
-          //   content: this.deepseek_content,
-          //   modelName: "",
-          //   company: "",
-          //   time: new Date().toLocaleString("zh-CN"),
-          // });
+          this.$store.commit("SET_REPORT_DATA", {
+            content: this.deepseek_content,
+            modelName: "",
+            company: "",
+            time: new Date().toLocaleString("zh-CN"),
+          });
 
-          // this.$router.push("/report-display");
+          this.$router.push("/report-display");
         }
       } catch (error) {
         console.error("API 调用失败:", error);

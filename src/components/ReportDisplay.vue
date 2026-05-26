@@ -2,7 +2,7 @@
  * @Description: 报告文件组件
  * @Author: wang_k
  * @Date: 2026-05-25 17:01:05
- * @LastEditTime: 2026-05-25 18:31:11
+ * @LastEditTime: 2026-05-26 11:33:09
  * @FilePath: /vue2-mobile-h5/src/components/ReportDisplay.vue
 -->
 <template>
@@ -35,56 +35,7 @@
 
     <!-- 主要内容卡片 -->
     <div v-if="finalReport && finalReport.content" class="report-card">
-      <div class="report-body">
-        <div
-          v-for="(node, index) in parsedContent"
-          :key="index"
-          :class="['md-node', node.type]"
-        >
-          <!-- 标题 -->
-          <template v-if="node.type === 'h1'">
-            <h1>{{ node.text }}</h1>
-          </template>
-          <template v-else-if="node.type === 'h2'">
-            <h2>{{ node.text }}</h2>
-          </template>
-          <template v-else-if="node.type === 'h3'">
-            <h3>{{ node.text }}</h3>
-          </template>
-
-          <!-- 分隔线 -->
-          <template v-else-if="node.type === 'hr'">
-            <div class="md-hr" />
-          </template>
-
-          <!-- 列表项 -->
-          <template v-else-if="node.type === 'li'">
-            <div class="md-li">
-              <span class="li-marker">{{
-                node.ordered ? `${node.index}.` : "•"
-              }}</span>
-              <span class="li-text">{{ node.text }}</span>
-            </div>
-          </template>
-
-          <!-- 引用块 -->
-          <template v-else-if="node.type === 'blockquote'">
-            <blockquote>{{ node.text }}</blockquote>
-          </template>
-
-          <!-- 代码块 -->
-          <template v-else-if="node.type === 'code'">
-            <pre
-              class="md-code"
-            ><code :class="node.lang ? `language-${node.lang}` : ''">{{ node.text }}</code></pre>
-          </template>
-
-          <!-- 普通段落 -->
-          <template v-else>
-            <p>{{ node.text }}</p>
-          </template>
-        </div>
-      </div>
+      <div class="report-body" id="content" v-html="markdownContent"></div>
     </div>
 
     <!-- 空状态展示 -->
@@ -102,6 +53,7 @@
 </template>
 
 <script>
+import { marked } from "marked";
 import { NavBar, Tag, Empty } from "vant";
 
 export default {
@@ -131,17 +83,10 @@ export default {
   data() {
     return {
       finalReport: null,
+      markdownContent: "",
     };
   },
   computed: {
-    // 最终报告数据：优先使用 prop，其次使用 store 中的 reportData
-    // finalReport() {
-    //   return (
-    //     this.$props.report ||
-    //     (this.$store && this.$store.state.reportData) ||
-    //     null
-    //   );
-    // },
     // 解析后的内容节点列表
     parsedContent() {
       console.log(this.finalReport, "finalReport");
@@ -155,9 +100,18 @@ export default {
     const data = this.$store.state.reportData;
     if (data) {
       this.finalReport = data;
+      this.markdownContent = this.renderMarkdown(data.content);
     }
   },
   methods: {
+    /**
+     * 渲染 Markdown 内本为 HTML
+     * @param markdown Markdown 格式文本
+     * @returns HTML 字符串
+     */
+    renderMarkdown(markdown) {
+      return marked.parse(markdown);
+    },
     /**
      * 解析 Markdown 文本为节点数组（增强版）
      * @param {string} text - Markdown 格式文本
@@ -340,8 +294,8 @@ export default {
     },
   },
   beforeDestroy() {
-    this.$store.commit('SET_REPORT_DATA', null)
-  }
+    this.$store.commit("SET_REPORT_DATA", null);
+  },
 };
 </script>
 
@@ -386,6 +340,7 @@ export default {
     overflow: hidden;
 
     .report-body {
+      font-size: 18px;
       padding: 20px 16px;
     }
   }
@@ -498,4 +453,5 @@ export default {
     text-align: center;
   }
 }
+
 </style>
